@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<title>AI Financial Fraud Detection</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+body{
+font-family: Arial;
+background: linear-gradient(to right,#2c3e50,#4ca1af);
+text-align:center;
+color:white;
+}
+
+.container{
+background:white;
+color:black;
+width:900px;
+margin:60px auto;
+padding:25px;
+border-radius:12px;
+box-shadow:0px 10px 20px rgba(0,0,0,0.3);
+}
+
+button{
+padding:8px 16px;
+background:#007BFF;
+border:none;
+color:white;
+border-radius:6px;
+cursor:pointer;
+margin:5px;
+}
+
+button:hover{
+background:#0056b3;
+}
+
+table{
+width:100%;
+margin-top:20px;
+border-collapse:collapse;
+font-size:14px;
+}
+
+th,td{
+padding:8px;
+border:1px solid #ccc;
+}
+
+th{
+background:#333;
+color:white;
+}
+
+.fraud{
+background:#ffcccc;
+color:red;
+font-weight:bold;
+}
+
+.normal{
+background:#ccffcc;
+color:green;
+}
+
+.pagination{
+display:flex;
+justify-content:flex-end;
+margin-top:10px;
+}
+
+.chart-container{
+width:350px;
+margin:30px auto;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>AI Financial Fraud Detection System</h1>
+
+<div class="container">
+
+<h3>Upload Transaction Dataset (CSV / Excel)</h3>
+
+<input type="file" id="fileInput">
+
+<br><br>
+
+<button onclick="uploadFile()">Detect Fraud</button>
+
+<h3 id="summary"></h3>
+
+<table id="resultTable">
+
+<thead>
+<tr>
+<th>Transaction</th>
+<th>Prediction</th>
+<th>Probability</th>
+</tr>
+</thead>
+
+<tbody></tbody>
+
+</table>
+
+<!-- Pagination hidden initially -->
+
+<div class="pagination" id="pagination" style="display:none;">
+
+<button onclick="previousPage()">Previous</button> <button onclick="nextPage()">Next</button>
+
+</div>
+
+<div class="chart-container">
+<canvas id="fraudChart"></canvas>
+</div>
+
+</div>
+
+<script>
+
+let allResults = [];
+let currentPage = 1;
+let rowsPerPage = 20;
+
+async function uploadFile(){
+
+const fileInput = document.getElementById("fileInput").files[0];
+
+if(!fileInput){
+alert("Please upload a CSV or Excel file");
+return;
+}
+
+const formData = new FormData();
+formData.append("file",fileInput);
+
+const response = await fetch("http://127.0.0.1:8000/upload",{
+method:"POST",
+body:formData
+});
+
+const data = await response.json();
+
+allResults = data.results;
+
+displayPage(1);
+
+updateSummary();
+
+drawChart();
+
+document.getElementById("pagination").style.display="flex";
+
+}
+
+function displayPage(page){
+
+currentPage = page;
+
+const tableBody = document.querySelector("#resultTable tbody");
+tableBody.innerHTML="";
+
+let start = (page-1)*rowsPerPage;
+let end = start + rowsPerPage;
+
+let pageData = allResults.slice(start,end);
+
+pageData.forEach((r,i)=>{
+
+let row = document.createElement("tr");
+
+row.className = r.prediction==="Fraud" ? "fraud":"normal";
+
+row.innerHTML =
+"<td>"+(start+i+1)+"</td>"+
+"<td>"+r.prediction+"</td>"+
+"<td>"+(r.probability*100).toFixed(2)+"%</td>";
+
+tableBody.appendChild(row);
+
+});
+
+}
+
+function nextPage(){
+
+if(currentPage*rowsPerPage < allResults.length){
+displayPage(currentPage+1);
+}
+
+}
+
+function previousPage(){
+
+if(currentPage>1){
+displayPage(currentPage-1);
+}
+
+}
+
+function updateSummary(){
+
+let fraudCount = allResults.filter(r=>r.prediction==="Fraud").length;
+let normalCount = allResults.length - fraudCount;
+
+document.getElementById("summary").innerHTML =
+"Total Transactions: "+allResults.length+
+" | Fraud: "+fraudCount+
+" | Normal: "+normalCount;
+
+}
+
+function drawChart(){
+
+let fraudCount = allResults.filter(r=>r.prediction==="Fraud").length;
+let normalCount = allResults.length - fraudCount;
+
+const ctx = document.getElementById("fraudChart");
+
+new Chart(ctx,{
+type:"pie",
+data:{
+labels:["Fraud","Normal"],
+datasets:[{
+data:[fraudCount,normalCount],
+backgroundColor:["red","green"]
+}]
+},
+options:{
+responsive:true,
+maintainAspectRatio:false
+}
+});
+
+}
+
+</script>
+
+</body>
+
+</html>

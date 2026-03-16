@@ -143,7 +143,9 @@ return;
 }
 
 const formData = new FormData();
-formData.append("file",fileInput);
+formData.append("file", fileInput);
+
+try{
 
 const response = await fetch("http://127.0.0.1:8000/upload",{
 method:"POST",
@@ -152,19 +154,35 @@ body:formData
 
 const data = await response.json();
 
+console.log("API response:", data);
+
+if(!data.results){
+alert("Prediction failed or dataset not supported");
+return;
+}
+
 allResults = data.results;
 
 displayPage(1);
-
 updateSummary();
-
 drawChart();
 
 document.getElementById("pagination").style.display="flex";
 
+}catch(error){
+
+console.error(error);
+alert("Server error");
+
+}
+
 }
 
 function displayPage(page){
+
+if(!allResults || allResults.length === 0){
+return;
+}
 
 currentPage = page;
 
@@ -192,6 +210,7 @@ tableBody.appendChild(row);
 });
 
 }
+
 
 function nextPage(){
 

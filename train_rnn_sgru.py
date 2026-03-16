@@ -15,7 +15,7 @@ from model import RNN_SGRU
 # Load Dataset
 # =========================
 
-data = pd.read_csv("dataset/creditcard.csv")
+data = pd.read_csv("dataset/dirty_financial_transactions.csv")
 
 print("Dataset shape:", data.shape)
 

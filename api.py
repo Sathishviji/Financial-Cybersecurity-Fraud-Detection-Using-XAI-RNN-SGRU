@@ -31,36 +31,45 @@ async def upload_file(file: UploadFile = File(...)):
         # Read file
         if file.filename.endswith(".csv"):
             df = pd.read_csv(file.file)
-            df = df.head(2000)
 
         elif file.filename.endswith(".xlsx"):
             df = pd.read_excel(file.file)
-            df = df.head(2000)
 
         else:
             return {"error": "Only CSV or Excel files allowed"}
 
+        # Limit rows for performance
+        df = df.head(2000)
+
         print("Dataset Columns:", df.columns)
 
         # Remove label column if exists
-        X = df.drop("Class", axis=1, errors="ignore").head(2000)
+        X = df.drop("Class", axis=1, errors="ignore")
 
         # Convert text columns to numeric
         for col in X.columns:
             if X[col].dtype == "object":
                 X[col] = pd.factorize(X[col])[0]
 
-        # Handle missing values
+        # Fill missing values
         X = X.fillna(0)
 
-        # Limit number of columns if dataset has too many
+        # Convert everything to numeric
+        X = X.apply(pd.to_numeric, errors="coerce").fillna(0)
+
+        # Limit columns if too many
         if X.shape[1] > 30:
             X = X.iloc[:, :30]
 
-        # Preprocessing
+        # Ensure at least 10 features
+        while X.shape[1] < 10:
+             X[f"dummy_{X.shape[1]}"] = 0
+
+        # Scaling
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
 
+        # PCA
         pca = PCA(n_components=10)
         X_pca = pca.fit_transform(X_scaled)
 
